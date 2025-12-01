@@ -5,6 +5,7 @@ Prints Sudoku board and given digits
 """
 import curses
 from curses import wrapper
+import sqlalchemy
 
 ROWS = 9
 COLS = 9
