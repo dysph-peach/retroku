@@ -5,7 +5,24 @@ Prints Sudoku board and given digits
 """
 import curses
 from curses import wrapper
-import sqlalchemy
+from flask import *
+from sqlalchemy import *
+from flask_sqlalchemy import SQLAlchemy
+import os
+
+app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.getcwd() + "/instance/db.sqlite"
+db = SQLAlchemy(app)
+
+class Puzzle(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    puzz_disp = db.Column(db.String(81), nullable=False)
+    puzz_answ = db.Column(db.String(81), nullable=False)
+    board = db.Column(db.String, nullable=False)
+    difficulty = db.Column(db.Integer, nullable=False) # 1 for easy, 2 for medium, 3 for hard
+    puzzle_type = db.Column(db.Integer, nullable=False) # each number will b a different type of puzzle
+    puzzle_name = db.Column(db.String, unique=True, nullable=False)
+    puzzle_rules = db.Column(db.String)
 
 ROWS = 9
 COLS = 9
