@@ -82,35 +82,42 @@ def main(stdscr):
         puzzle = Puzzle.query.filter_by(id=1).first()
         print_board(stdscr, puzzle.board)
         print_givens(stdscr, puzzle.puzz_disp)
-        stdscr.refresh()
-        stdscr.getkey()
         curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
         curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
         r = 5
         c = 3
         lr = 5
         lc = 3
+        curr_puzz = puzzle.puzz_disp
         highlight(stdscr, r, c, curses.color_pair(1))
-        stdscr.refresh()
-        key = stdscr.getkey()
-
-        if key == "KEY_UP":
-            lr = r
-            r -= 1
-        elif key == "KEY_DOWN":
-            lr = r
-            r += 1
-        elif key == "KEY_LEFT":
-            lc = c
-            c -= 1
-        elif key == "KEY_RIGHT":
-            lc = c
-            c += 1
-        
-        highlight(stdscr, lr, lc, curses.color_pair(2))
-        highlight(stdscr, r, c, curses.color_pair(1))
+        while curr_puzz != puzzle.puzz_answ:
+            stdscr.refresh()
+            key = stdscr.getkey()
+            print(key)
+            if key == "KEY_UP":
+                lr = r
+                lc = c
+                r -= 1
+            elif key == "KEY_DOWN":
+                lr = r
+                lc = c
+                r += 1
+            elif key == "KEY_LEFT":
+                lc = c
+                lr = r
+                c -= 1
+            elif key == "KEY_RIGHT":
+                lc = c
+                lr = r
+                c += 1
+            else:
+                curr_puzz = puzzle.puzz_answ
+            
+            highlight(stdscr, lr, lc, curses.color_pair(2))
+            highlight(stdscr, r, c, curses.color_pair(1))
         
         stdscr.refresh()
         stdscr.getkey()
+
 
 wrapper(main)
