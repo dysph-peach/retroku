@@ -78,9 +78,9 @@ def main(stdscr):
     # Clear screen
     stdscr.clear()
     #stdscr.bkgdset(curses.ACS_VLINE)
-    print_board(stdscr, "retroku.txt")
     with app.app_context():
         puzzle = Puzzle.query.filter_by(id=1).first()
+        print_board(stdscr, puzzle.board)
         print_givens(stdscr, puzzle.puzz_disp)
     stdscr.refresh()
     stdscr.getkey()
