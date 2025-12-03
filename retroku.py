@@ -90,8 +90,4 @@ def main(stdscr):
     stdscr.refresh()
     stdscr.getkey()
 
-if __name__ == "__main__":
-    with app.app_context():
-        db.session.commit()
-
 wrapper(main)
