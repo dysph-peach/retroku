@@ -11,7 +11,7 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.getcwd() + "/instance/db.sqlite"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.getcwd() + "/retroku/instance/db.sqlite"
 db = SQLAlchemy(app)
 
 class Puzzle(db.Model):
@@ -79,7 +79,9 @@ def main(stdscr):
     stdscr.clear()
     #stdscr.bkgdset(curses.ACS_VLINE)
     print_board(stdscr, "retroku.txt")
-    print_givens(stdscr, "235ug1153ug135104	0194857 09349742595287403958724")
+    with app.app_context():
+        puzzle = Puzzle.query.filter_by(id=1).first()
+        print_givens(stdscr, puzzle.puzz_disp)
     stdscr.refresh()
     stdscr.getkey()
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
@@ -87,5 +89,9 @@ def main(stdscr):
         highlight(stdscr, 5, i, curses.color_pair(1))
     stdscr.refresh()
     stdscr.getkey()
+
+if __name__ == "__main__":
+    with app.app_context():
+        db.session.commit()
 
 wrapper(main)
