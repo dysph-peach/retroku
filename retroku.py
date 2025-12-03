@@ -53,7 +53,7 @@ def cell_r(r, c):
 
 
 def print_board(scr, template):
-    with open(template, "r") as f:
+    with open(template, "r", encoding="utf-8") as f:
         i = 0 #y position
         for line in f:
             scr.addstr(i, 0, line.strip("\n")) #print each line of template sans '\n'
