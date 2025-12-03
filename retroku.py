@@ -85,8 +85,31 @@ def main(stdscr):
     stdscr.refresh()
     stdscr.getkey()
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
-    for i in range(3, 8):
-        highlight(stdscr, 5, i, curses.color_pair(1))
+    curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
+    r = 5
+    c = 3
+    lr = 5
+    lc = 3
+    highlight(stdscr, r, c, curses.color_pair(1))
+    stdscr.refresh()
+    key = stdscr.getkey()
+
+    if key == "KEY_UP":
+        lr = r
+        r -= 1
+    elif key == "KEY_DOWN":
+        lr = r
+        r += 1
+    elif key == "KEY_LEFT":
+        lc = c
+        c -= 1
+    elif key == "KEY_RIGHT":
+        lc = c
+        c += 1
+    
+    highlight(stdscr, lr, lc, curses.color_pair(2))
+    highlight(stdscr, r, c, curses.color_pair(1))
+    
     stdscr.refresh()
     stdscr.getkey()
 
