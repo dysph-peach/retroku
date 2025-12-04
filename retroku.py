@@ -8,7 +8,7 @@ from curses import wrapper
 from flask import *
 from sqlalchemy import *
 from flask_sqlalchemy import SQLAlchemy
-import os
+import os, random
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.getcwd() + "/retroku/instance/db.sqlite"
