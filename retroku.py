@@ -11,7 +11,7 @@ from flask_sqlalchemy import SQLAlchemy
 import os, random
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.getcwd() + "/retroku/instance/db.sqlite"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.getcwd() + "/instance/db.sqlite"
 db = SQLAlchemy(app)
 
 class Puzzle(db.Model):
