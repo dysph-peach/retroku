@@ -125,10 +125,19 @@ def menu(stdscr):
         puzzles = Puzzle.query.all()
         i = 0
         puzzle_selected = False
+        for pzl in puzzles:
+            if pzl.difficulty == 1:
+                difficulty = "n easy"
+            elif pzl.difficulty == 2:
+                difficulty = " medium"
+            elif pzl.difficulty == 3:
+                difficulty = " hard"
+            
+            if pzl.puzzle_type == 1:
+                puzz_type = "Sudoku"
+            stdscr.addstr(i, 0, f"{pzl.puzzle_name} (a{difficulty} {puzz_type} puzzle)")
+            i += 2
         while puzzle_selected == False:
-            for pzl in puzzles:
-                stdscr.addstr(i, 0, pzl.puzzle_name)
-                i += 2
             stdscr.refresh()
             key = stdscr.getkey()
             if key == "KEY_UP":
@@ -141,6 +150,7 @@ def menu(stdscr):
                 puzzle = position / 2
                 puzzle += 1
                 puzzle_selected = True
+            stdscr.standout()
         wrapper(main, Puzzle.query.filter_by(id=puzzle).first())
 
 
