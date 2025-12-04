@@ -122,6 +122,7 @@ def menu(stdscr):
     with app.app_context():
         stdscr.clear()
         position = 0
+        posid = 1
         puzzles = Puzzle.query.all()
         i = 0
         puzzle_selected = False
@@ -135,7 +136,12 @@ def menu(stdscr):
             
             if pzl.puzzle_type == 1:
                 puzz_type = "Sudoku"
+
+            if pzl.id == 1:
+                stdscr.attron(curses.A_STANDOUT)
             stdscr.addstr(i, 0, f"{pzl.puzzle_name} (a{difficulty} {puzz_type} puzzle)")
+            if pzl.id == 1:
+                stdscr.attroff(curses.A_STANDOUT)
             i += 2
         while puzzle_selected == False:
             stdscr.refresh()
@@ -143,14 +149,38 @@ def menu(stdscr):
             if key == "KEY_UP":
                 if position > 0:
                     position -= 2
+                    posid = position / 2
+                    posid += 1
             elif key == "KEY_DOWN":
                 if position < 2 * (len(puzzles) - 1):
                     position += 2
+                    posid = position / 2
+                    posid += 1
             elif key == " ":
-                puzzle = position / 2
-                puzzle += 1
                 puzzle_selected = True
-        wrapper(main, Puzzle.query.filter_by(id=puzzle).first())
+            
+            if key == "KEY_DOWN" or key == "KEY_UP":
+                stdscr.clear()
+                i = 0
+                for pzl in puzzles:
+                    if pzl.difficulty == 1:
+                        difficulty = "n easy"
+                    elif pzl.difficulty == 2:
+                        difficulty = " medium"
+                    elif pzl.difficulty == 3:
+                        difficulty = " hard"
+                    
+                    if pzl.puzzle_type == 1:
+                        puzz_type = "Sudoku"
+
+                    if pzl.id == posid:
+                        stdscr.attron(curses.A_STANDOUT)
+                    stdscr.addstr(i, 0, f"{pzl.puzzle_name} (a{difficulty} {puzz_type} puzzle)")
+                    if pzl.id == posid:
+                        stdscr.attroff(curses.A_STANDOUT)
+                    i += 2
+
+        wrapper(main, Puzzle.query.filter_by(id=posid).first())
 
 
 wrapper(menu)
