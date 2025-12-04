@@ -150,7 +150,6 @@ def menu(stdscr):
                 puzzle = position / 2
                 puzzle += 1
                 puzzle_selected = True
-            stdscr.standout()
         wrapper(main, Puzzle.query.filter_by(id=puzzle).first())
 
 
