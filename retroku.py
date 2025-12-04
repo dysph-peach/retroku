@@ -74,12 +74,11 @@ def print_givens(scr, givens):
             i += 1
 
 
-def main(stdscr):
+def main(stdscr, puzzle):
     with app.app_context():
         # Clear screen
         stdscr.clear()
-        #stdscr.bkgdset(curses.ACS_VLINE)    
-        puzzle = Puzzle.query.filter_by(id=1).first()
+        #stdscr.bkgdset(curses.ACS_VLINE)   
         print_board(stdscr, puzzle.board)
         print_givens(stdscr, puzzle.puzz_disp)
         curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
@@ -119,4 +118,30 @@ def main(stdscr):
         stdscr.getkey()
 
 
-wrapper(main)
+def menu(stdscr):
+    with app.app_context():
+        stdscr.clear()
+        position = 0
+        puzzles = Puzzle.query.all()
+        i = 0
+        puzzle_selected = False
+        while puzzle_selected == False:
+            for pzl in puzzles:
+                stdscr.addstr(i, 0, pzl.puzzle_name)
+                i += 2
+            stdscr.refresh()
+            key = stdscr.getkey()
+            if key == "KEY_UP":
+                if position > 0:
+                    position -= 2
+            elif key == "KEY_DOWN":
+                if position < 2 * (len(puzzles) - 1):
+                    position += 2
+            elif key == " ":
+                puzzle = position / 2
+                puzzle += 1
+                puzzle_selected = True
+        wrapper(main, Puzzle.query.filter_by(id=puzzle).first())
+
+
+wrapper(menu)
