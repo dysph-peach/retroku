@@ -93,7 +93,6 @@ def main(stdscr):
         while curr_puzz != puzzle.puzz_answ:
             stdscr.refresh()
             key = stdscr.getkey()
-            print(key)
             if key == "KEY_UP":
                 lr = r
                 lc = c
