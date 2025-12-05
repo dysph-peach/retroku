@@ -10,9 +10,17 @@ from sqlalchemy import *
 from flask_sqlalchemy import SQLAlchemy
 import os, random
 
+
+ROWS = 9
+COLS = 9
+
+tiny_num = {1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9}
+board = {}
+
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.getcwd() + "/instance/db.sqlite"
 db = SQLAlchemy(app)
+
 
 class Puzzle(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -20,18 +28,79 @@ class Puzzle(db.Model):
     puzz_answ = db.Column(db.String(81), nullable=False)
     board = db.Column(db.String, nullable=False)
     difficulty = db.Column(db.Integer, nullable=False) # 1 for easy, 2 for medium, 3 for hard
-    puzzle_type = db.Column(db.Integer, nullable=False) # each number will b a different type of puzzle
+    puzzle_type = db.Column(db.Integer, nullable=False) # each number will be a different type of puzzle
     puzzle_name = db.Column(db.String, unique=True, nullable=False)
     puzzle_rules = db.Column(db.String)
 
-ROWS = 9
-COLS = 9
+
+class Cell:
+    def __init__(self, pos, type, val, bg_col):
+        self.pos = pos #position of cell on the board as a tuple: (r, c)
+        self.type = type #"normal", "given", or "pencil"
+        self.val = [val] #list containing 1 or more numbers. if type == "pencil", will display last 3 numbers in the list
+        self.bg_col = bg_col
+    
+
+    def set_type(self, new_type):
+        self.type = new_type
+
+
+    def add_val(self, new_val):
+        if self.type == "pencil":
+            self.val.append(new_val)
+        else:
+            self.val = [new_val]
+
+    
+    def del_val(self):
+        if self.type == "pencil" and self.val:
+            self.val.pop(-1)
+        self.val = []
+
+    
+    def set_bg(self, scr, new_bg):
+        self.bg_col = new_bg
+        scr.refresh()
+
+
+    
+    def update(self, scr):
+        pair_num = (ROWS * (self.pos[0] - 1)) + self.pos[1] + 2
+        curses.init_pair(pair_num, curses.COLOR_WHITE, self.bg_col)
+        shading = curses.color_pair(pair_num)
+        if self.val:
+            if self.type == "normal":
+                scr.addch(*cell_l(*self.pos), " ", shading)
+                scr.addch(*cell_c(*self.pos), self.val[0], shading)
+                scr.addch(*cell_r(*self.pos), " ", shading)
+            elif self.type == "given":
+                scr.addch(*cell_l(*self.pos), " ", shading)
+                scr.addch(*cell_c(*self.pos), self.val[0], curses.A_BOLD | shading)
+                scr.addch(*cell_r(*self.pos), " ", shading)
+            elif self.type == "pencil":
+                if len(self.val) == 1:
+                    scr.addch(*cell_l(*self.pos), " ", shading)
+                    scr.addch(*cell_c(*self.pos), tiny_num[self.val[0]], shading)
+                    scr.addch(*cell_r(*self.pos), " ", shading)
+                elif len(self.val) == 2:
+                    scr.addch(*cell_l(*self.pos), tiny_num[self.val[0]], shading)
+                    scr.addch(*cell_c(*self.pos), " ", shading)
+                    scr.addch(*cell_r(*self.pos), tiny_num[self.val[1]], shading)
+                else:
+                    scr.addch(*cell_l(*self.pos), tiny_num[self.val[-3]], shading)
+                    scr.addch(*cell_c(*self.pos), tiny_num[self.val[-2]], shading)
+                    scr.addch(*cell_r(*self.pos), tiny_num[self.val[-1]], shading)
+        else:
+            scr.addch(*cell_l(*self.pos), " ", shading)
+            scr.addch(*cell_c(*self.pos), " ", shading)
+            scr.addch(*cell_r(*self.pos), " ", shading)
+        scr.refresh()
+
 
 
 def highlight(scr, r, c, color):
-    scr.chgat(*(cell_l(r, c)), 1, color | scr.inch(*(cell_l(r, c))))
-    scr.chgat(*(cell(r, c)), 1, color | scr.inch(*(cell(r, c))))
-    scr.chgat(*(cell_r(r, c)), 1, color | scr.inch(*(cell_r(r, c))))
+    board[(r, c)].set_bg(scr, color)
+    board[(r, c)].update(scr)
 
 
 def cell_l(r, c):
@@ -40,7 +109,7 @@ def cell_l(r, c):
     return 2 * r, 4 * c - 1
 
 
-def cell(r, c):
+def cell_c(r, c):
     if r not in range(1, ROWS + 1) or c not in range(1, COLS + 1):
         raise ValueError
     return 2 * r, 4 * c
@@ -52,7 +121,7 @@ def cell_r(r, c):
     return 2 * r, 4 * c + 1
 
 
-def print_board(scr, template):
+def print_template(scr, template):
     with open(template, "r", encoding="utf-8") as f:
         i = 0 #y position
         for line in f:
@@ -60,35 +129,41 @@ def print_board(scr, template):
             i += 1
 
 
-def print_givens(scr, givens):
+def board_setup(scr, givens):
     if len(givens) > ROWS * COLS:
         raise ValueError
     givens = str(givens)
     i = 0 #index of number in givens
     for r in range(1, ROWS + 1):
         for c in range(1, COLS + 1):
-            if i == len(givens): #break if index too high
-                break
-            if givens[i] in "123456789":
-                scr.addch(*cell(r, c), givens[i], curses.A_BOLD)
+            board[(r, c)] = Cell((r, c), "normal", " ", -1)
+            if i >= len(givens): #break if index too high
+                pass
+            elif givens[i] in "123456789":
+                board[(r, c)].set_type("given")
+                board[(r, c)].add_val(givens[i])
+            board[(r, c)].update(scr)
             i += 1
 
 
 def main(stdscr, puzzle):
     with app.app_context():
+        curses.use_default_colors()
+        curses.start_color()
+        curses.init_pair(2, curses.COLOR_WHITE, -1)
         # Clear screen
         stdscr.clear()
         #stdscr.bkgdset(curses.ACS_VLINE)   
-        print_board(stdscr, puzzle.board)
-        print_givens(stdscr, puzzle.puzz_disp)
+        print_template(stdscr, puzzle.board)
+        board_setup(stdscr, puzzle.puzz_disp)
         curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
-        curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
+        #curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
         r = 5
         c = 3
         lr = 5
         lc = 3
         curr_puzz = puzzle.puzz_disp
-        highlight(stdscr, r, c, curses.color_pair(1))
+        highlight(stdscr, r, c, curses.COLOR_RED)
         while curr_puzz != puzzle.puzz_answ:
             stdscr.refresh()
             key = stdscr.getkey()
@@ -111,8 +186,8 @@ def main(stdscr, puzzle):
             else:
                 curr_puzz = puzzle.puzz_answ
             
-            highlight(stdscr, lr, lc, curses.color_pair(2))
-            highlight(stdscr, r, c, curses.color_pair(1))
+            highlight(stdscr, lr, lc, -1)
+            highlight(stdscr, r, c, curses.COLOR_RED)
         
         stdscr.refresh()
         stdscr.getkey()
