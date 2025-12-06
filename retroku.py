@@ -107,6 +107,21 @@ def select(scr, r, c):
     scr.chgat(*cell_l(r, c), 3, curses.A_REVERSE)
 
 
+def h_color(val):
+    if val == 1:
+        return curses.COLOR_CYAN
+    
+    if val == 2:
+        return curses.COLOR_YELLOW
+    
+def l_color(val):
+    if val == 1:
+        return curses.COLOR_GREEN
+    
+    if val == 2:
+        return curses.COLOR_MAGENTA
+
+
 def cell_l(r, c):
     if r not in range(1, ROWS + 1) or c not in range(1, COLS + 1):
         raise ValueError
@@ -158,6 +173,8 @@ def main(stdscr, puzzle):
         stdscr.clear()
         print_template(stdscr, puzzle.board)
         board_setup(stdscr, puzzle.puzz_disp)
+        mode = "normal"
+        color = 1
         r = 5
         c = 3
         lr = 5
@@ -168,30 +185,69 @@ def main(stdscr, puzzle):
         board[(6, 6)].set_type("pencil")
         board[(6, 6)].add_val("3")
         board[(6, 6)].update(stdscr)
-        
+
         select(stdscr, r, c)
         while curr_puzz != puzzle.puzz_answ:
             stdscr.refresh()
             key = stdscr.getkey()
-            if key == "KEY_UP":
+            if key == "KEY_UP" or key == "l":
                 lr = r
                 lc = c
-                r -= 1
-            elif key == "KEY_DOWN":
+                if r > 1:
+                    r -= 1
+                else:
+                    r = ROWS
+            elif key == "KEY_DOWN" or key == "k":
                 lr = r
                 lc = c
-                r += 1
-            elif key == "KEY_LEFT":
+                if r < ROWS:
+                    r += 1
+                else:
+                    r = 1
+            elif key == "KEY_LEFT" or key == "j":
                 lc = c
                 lr = r
-                c -= 1
-            elif key == "KEY_RIGHT":
+                if c > 1:
+                    c -= 1
+                else:
+                    c = COLS
+            elif key == "KEY_RIGHT" or key == ";":
                 lc = c
                 lr = r
-                c += 1
+                if c < COLS:
+                    c += 1
+                else:
+                    c = 1
+            elif key == "n":
+                mode = "normal"
+            elif key == "p":
+                mode = "pencil"
+            elif key == "h":
+                mode = "highlight"
+            elif key == "i":
+                mode = "line"
+            elif key == "c":
+                if color == 1:
+                    color = 2
+                else:
+                    color = 1
+            elif key in VALID_NUMS:
+                if mode == "normal" or mode == "pencil":
+                    if board[(r, c)].type != "given":
+                        board[(r, c)].set_type(mode)
+                        board[(r, c)].add_val(key)
+                        board[(r, c)].update(stdscr)
+            elif key == " ":
+                if mode == "highlight":
+                    hcol = h_color(color)
+                    if hcol == board[(r, c)].bg_col:
+                        board[(r, c)].set_bg(stdscr, -1)
+                    else:
+                        board[(r, c)].set_bg(stdscr, hcol)
+                board[(r, c)].update(stdscr)
             else:
                 curr_puzz = puzzle.puzz_answ
-            
+
             board[(lr, lc)].update(stdscr)
             select(stdscr, r, c)
         
@@ -227,12 +283,12 @@ def menu(stdscr):
         while puzzle_selected == False:
             stdscr.refresh()
             key = stdscr.getkey()
-            if key == "KEY_UP":
+            if key == "KEY_UP" or key == "l":
                 if position > 0:
                     position -= 2
                     posid = position / 2
                     posid += 1
-            elif key == "KEY_DOWN":
+            elif key == "KEY_DOWN" or key == "k":
                 if position < 2 * (len(puzzles) - 1):
                     position += 2
                     posid = position / 2
@@ -240,7 +296,7 @@ def menu(stdscr):
             elif key == " ":
                 puzzle_selected = True
             
-            if key == "KEY_DOWN" or key == "KEY_UP":
+            if key == "KEY_DOWN" or key == "KEY_UP" or key == "k" or key == "l":
                 stdscr.clear()
                 i = 0
                 for pzl in puzzles:
