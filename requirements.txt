@@ -1,0 +1,5 @@
+if platform.system() == 'Windows':
+    windows-curses
+flask
+sqlalchemy
+flask_sqlalchemy

@@ -17,6 +17,15 @@ VALID_NUMS = "123456789"
 
 tiny_num = {"1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹"}
 board = {}
+row = {}
+for r in range(1, ROWS + 1):
+    row[r] = set([])
+col = {}
+for c in range(1, COLS + 1):
+    col[c] = set([])
+box = {}
+for b in range(1, 10):
+    box[b] = set([])
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.getcwd() + "/instance/db.sqlite"
@@ -38,31 +47,44 @@ class Cell:
     def __init__(self, pos, type, val, bg_col):
         self.pos = pos #position of cell on the board as a tuple: (r, c)
         self.type = type #"normal", "given", or "pencil"
-        self.val = [val] #list containing 1 or more numbers. if type == "pencil", will display last 3 numbers in the list
+        if not val:
+            self.val = []
+        else:
+            self.val = [val] #list containing 1 or more numbers. if type == "pencil", will display last 3 numbers in the list
         self.bg_col = bg_col
     
 
     def set_type(self, new_type):
+        if self.type == "normal":
+            self.val = []
         self.type = new_type
 
 
     def add_val(self, new_val):
         if self.type == "pencil":
-            self.val.append(new_val)
+            if new_val not in self.val:
+                self.val.append(new_val)
         else:
             self.val = [new_val]
 
     
     def del_val(self):
-        if self.type == "pencil" and self.val:
+        if self.type != "given" and self.val:
             self.val.pop(-1)
-        self.val = []
 
     
     def set_bg(self, scr, new_bg):
         self.bg_col = new_bg
         scr.refresh()
 
+
+    def scroll(self, scr, dir):
+        if self.val:
+            if dir == "r":
+                self.val.append(self.val.pop(0))
+            elif dir == "l":
+                self.val.insert(0, self.val.pop(-1))
+            self.update(scr)
 
     
     def update(self, scr):
@@ -140,6 +162,14 @@ def cell_r(r, c):
     return 2 * r, 4 * c + 1
 
 
+def rc_to_box(r, c):
+    return ((r-1) // 3) * 3 + (c-1) // 3 + 1
+
+
+def seen_cells(r, c):
+    return row[r] | col[c] | box[rc_to_box(r, c)]
+
+
 def print_template(scr, template):
     with open(template, "r", encoding="utf-8") as f:
         i = 0 #y position
@@ -155,12 +185,15 @@ def board_setup(scr, givens):
     i = 0 #index of number in givens
     for r in range(1, ROWS + 1):
         for c in range(1, COLS + 1):
-            board[(r, c)] = Cell((r, c), "normal", " ", -1)
+            board[(r, c)] = Cell((r, c), "normal", None, -1)
             if i >= len(givens): #break if index too high
                 pass
             elif givens[i] in "123456789":
                 board[(r, c)].set_type("given")
                 board[(r, c)].add_val(givens[i])
+            box[rc_to_box(r, c)].add(board[r, c])
+            row[r].add(board[(r, c)])
+            col[c].add(board[(r, c)])
             board[(r, c)].update(scr)
             i += 1
 
@@ -180,12 +213,6 @@ def main(stdscr, puzzle):
         lr = 5
         lc = 3
         curr_puzz = puzzle.puzz_disp
-        #testing
-        highlight(stdscr, 2, 2, curses.COLOR_CYAN)
-        board[(6, 6)].set_type("pencil")
-        board[(6, 6)].add_val("3")
-        board[(6, 6)].update(stdscr)
-
         select(stdscr, r, c)
         while curr_puzz != puzzle.puzz_answ:
             stdscr.refresh()
@@ -197,6 +224,7 @@ def main(stdscr, puzzle):
                     r -= 1
                 else:
                     r = ROWS
+
             elif key == "KEY_DOWN" or key == "k":
                 lr = r
                 lc = c
@@ -204,6 +232,7 @@ def main(stdscr, puzzle):
                     r += 1
                 else:
                     r = 1
+
             elif key == "KEY_LEFT" or key == "j":
                 lc = c
                 lr = r
@@ -211,6 +240,7 @@ def main(stdscr, puzzle):
                     c -= 1
                 else:
                     c = COLS
+
             elif key == "KEY_RIGHT" or key == ";":
                 lc = c
                 lr = r
@@ -218,25 +248,36 @@ def main(stdscr, puzzle):
                     c += 1
                 else:
                     c = 1
+
+            elif key == ",":
+                board[(r, c)].scroll(stdscr, "l")
+
+            elif key == ".":
+                board[(r, c)].scroll(stdscr, "r")
+
             elif key == "n":
                 mode = "normal"
             elif key == "p":
                 mode = "pencil"
             elif key == "h":
                 mode = "highlight"
-            elif key == "i":
-                mode = "line"
             elif key == "c":
                 if color == 1:
                     color = 2
                 else:
                     color = 1
+
             elif key in VALID_NUMS:
                 if mode == "normal" or mode == "pencil":
                     if board[(r, c)].type != "given":
                         board[(r, c)].set_type(mode)
                         board[(r, c)].add_val(key)
                         board[(r, c)].update(stdscr)
+
+            elif key == "KEY_BACKSPACE":
+                board[(r, c)].del_val()
+                board[(r, c)].update(stdscr)
+
             elif key == " ":
                 if mode == "highlight":
                     hcol = h_color(color)
@@ -244,7 +285,20 @@ def main(stdscr, puzzle):
                         board[(r, c)].set_bg(stdscr, -1)
                     else:
                         board[(r, c)].set_bg(stdscr, hcol)
+
                 board[(r, c)].update(stdscr)
+
+            elif key == "s":
+                puz_str = ""
+                for y in range(1, ROWS + 1):
+                    for x in range (1, COLS + 1):
+                        if board[(y, x)].type != "pencil" and board[(y, x)].val:
+                            puz_str += board[(y, x)].val[0]
+                        else:
+                            puz_str += "x"
+                
+                curr_puzz = puz_str
+
             else:
                 curr_puzz = puzzle.puzz_answ
 
@@ -252,7 +306,7 @@ def main(stdscr, puzzle):
             select(stdscr, r, c)
         
         stdscr.refresh()
-        stdscr.getkey()
+        print("Looks good to me!")
 
 
 def menu(stdscr):
@@ -316,8 +370,10 @@ def menu(stdscr):
                     if pzl.id == posid:
                         stdscr.attroff(curses.A_STANDOUT)
                     i += 2
-
-        wrapper(main, Puzzle.query.filter_by(id=posid).first())
+        if stdscr.getmaxyx()[0] < 30 or stdscr.getmaxyx()[1] < 50:
+            raise Exception('Window too small. Please resize and try again.')
+        else:
+            wrapper(main, Puzzle.query.filter_by(id=posid).first())
 
 
 wrapper(menu)
