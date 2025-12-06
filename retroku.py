@@ -13,8 +13,9 @@ import os, random
 
 ROWS = 9
 COLS = 9
+VALID_NUMS = "123456789"
 
-tiny_num = {1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9}
+tiny_num = {"1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹"}
 board = {}
 
 app = Flask(__name__)
@@ -97,10 +98,13 @@ class Cell:
         scr.refresh()
 
 
-
 def highlight(scr, r, c, color):
     board[(r, c)].set_bg(scr, color)
     board[(r, c)].update(scr)
+
+
+def select(scr, r, c):
+    scr.chgat(*cell_l(r, c), 3, curses.A_REVERSE)
 
 
 def cell_l(r, c):
@@ -150,20 +154,22 @@ def main(stdscr, puzzle):
     with app.app_context():
         curses.use_default_colors()
         curses.start_color()
-        curses.init_pair(2, curses.COLOR_WHITE, -1)
         # Clear screen
         stdscr.clear()
-        #stdscr.bkgdset(curses.ACS_VLINE)   
         print_template(stdscr, puzzle.board)
         board_setup(stdscr, puzzle.puzz_disp)
-        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
-        #curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
         r = 5
         c = 3
         lr = 5
         lc = 3
         curr_puzz = puzzle.puzz_disp
-        highlight(stdscr, r, c, curses.COLOR_RED)
+        #testing
+        highlight(stdscr, 2, 2, curses.COLOR_CYAN)
+        board[(6, 6)].set_type("pencil")
+        board[(6, 6)].add_val("3")
+        board[(6, 6)].update(stdscr)
+        
+        select(stdscr, r, c)
         while curr_puzz != puzzle.puzz_answ:
             stdscr.refresh()
             key = stdscr.getkey()
@@ -186,8 +192,8 @@ def main(stdscr, puzzle):
             else:
                 curr_puzz = puzzle.puzz_answ
             
-            highlight(stdscr, lr, lc, -1)
-            highlight(stdscr, r, c, curses.COLOR_RED)
+            board[(lr, lc)].update(stdscr)
+            select(stdscr, r, c)
         
         stdscr.refresh()
         stdscr.getkey()
